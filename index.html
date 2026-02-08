@@ -4,17 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mini</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#3498db">
-</head> 
-
-
-
-
-
-
-
     <style>
         :root {
             --border-color: #333;
@@ -64,9 +53,11 @@
             cursor: pointer;
         }
 
+        /* Thicker borders for 2x3 boxes */
+        /* Vertical lines every 3 columns */
         .cell:nth-child(3n) { border-right: 2px solid var(--border-color); }
         .cell:nth-child(6n) { border-right: none; }
-        
+        /* Horizontal lines every 2 rows */
         .grid > div:nth-child(n+13):nth-child(-n+18),
         .grid > div:nth-child(n+25):nth-child(-n+30) { border-bottom: 2px solid var(--border-color); }
 
@@ -126,58 +117,25 @@
         let selectedCell = null;
         let solution = [];
         let initialBoard = [];
-        let currentBoard = []; // Track user's current progress
         let timerInterval = null;
         let seconds = 0;
 
-        function updateTimerDisplay() {
-            let m = Math.floor(seconds/60).toString().padStart(2,'0');
-            let s = (seconds%60).toString().padStart(2,'0');
-            timerElement.innerText = `Time: ${m}:${s}`;
-        }
-
         function startTimer() {
             clearInterval(timerInterval);
+            seconds = 0;
             timerInterval = setInterval(() => {
                 seconds++;
-                updateTimerDisplay();
-                saveGame(); // Save time every second
+                let m = Math.floor(seconds/60).toString().padStart(2,'0');
+                let s = (seconds%60).toString().padStart(2,'0');
+                timerElement.innerText = `Time: ${m}:${s}`;
             }, 1000);
-        }
-
-        function saveGame() {
-            const gameState = {
-                solution,
-                initialBoard,
-                currentBoard,
-                seconds,
-                difficulty: document.getElementById('difficulty').value
-            };
-            localStorage.setItem('sudoku_save', JSON.stringify(gameState));
-        }
-
-        function loadGame() {
-            const saved = localStorage.getItem('sudoku_save');
-            if (saved) {
-                const data = JSON.parse(saved);
-                solution = data.solution;
-                initialBoard = data.initialBoard;
-                currentBoard = data.currentBoard;
-                seconds = data.seconds;
-                document.getElementById('difficulty').value = data.difficulty;
-                
-                render();
-                updateTimerDisplay();
-                startTimer();
-                return true;
-            }
-            return false;
         }
 
         function generateSudoku() {
             let board = Array(6).fill().map(() => Array(6).fill(0));
             const isValid = (b, r, c, n) => {
                 for (let i = 0; i < 6; i++) if (b[r][i] === n || b[i][c] === n) return false;
+                // 2x3 blocks logic
                 let sr = Math.floor(r/2)*2, sc = Math.floor(c/3)*3;
                 for (let i=0; i<2; i++) for (let j=0; j<3; j++) if (b[sr+i][sc+j] === n) return false;
                 return true;
@@ -199,24 +157,17 @@
         }
 
         function startNewGame() {
-            localStorage.removeItem('sudoku_save'); // Clear previous save
             const diff = document.getElementById('difficulty').value;
             const blanks = { 'easy': 12, 'medium': 18, 'hard': 22 }[diff];
             generateSudoku();
-            
             initialBoard = solution.map(row => [...row]);
             let count = 0;
             while (count < blanks) {
                 let r = Math.floor(Math.random()*6), c = Math.floor(Math.random()*6);
                 if (initialBoard[r][c] !== 0) { initialBoard[r][c] = 0; count++; }
             }
-            
-            // Initialize currentBoard as a copy of initialBoard
-            currentBoard = initialBoard.map(row => [...row]);
-            seconds = 0;
             render();
             startTimer();
-            saveGame();
         }
 
         function render() {
@@ -224,23 +175,15 @@
             for (let r=0; r<6; r++) for (let c=0; c<6; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
-                cell.dataset.r = r; 
-                cell.dataset.c = c;
-
                 if (initialBoard[r][c] !== 0) {
                     cell.innerText = initialBoard[r][c];
                     cell.classList.add('fixed');
                 } else {
-                    // Load user input if it exists
-                    if (currentBoard[r][c] !== 0) {
-                        cell.innerText = currentBoard[r][c];
-                        if (currentBoard[r][c] !== solution[r][c]) cell.classList.add('error');
-                    }
-                    
                     cell.onclick = () => {
                         if (selectedCell) selectedCell.classList.remove('selected');
                         selectedCell = cell;
                         cell.classList.add('selected');
+                        cell.dataset.r = r; cell.dataset.c = c;
                     };
                 }
                 gridElement.appendChild(cell);
@@ -249,51 +192,25 @@
 
         function inputValue(n) {
             if (!selectedCell) return;
-            const r = parseInt(selectedCell.dataset.r);
-            const c = parseInt(selectedCell.dataset.c);
-            
-            if (n === 0) { 
-                selectedCell.innerText = ''; 
-                selectedCell.classList.remove('error'); 
-                currentBoard[r][c] = 0;
-            } else {
-                selectedCell.innerText = n;
-                currentBoard[r][c] = n;
-                if (n != solution[r][c]) selectedCell.classList.add('error');
-                else selectedCell.classList.remove('error');
-            }
-
-            saveGame();
-
-            // Check Win Condition
-            const cells = [...document.querySelectorAll('.cell')];
-            if (cells.every(el => el.innerText != '' && !el.classList.contains('error'))) {
-                clearInterval(timerInterval);
-                localStorage.removeItem('sudoku_save');
-                alert("Winner!");
+            const r = selectedCell.dataset.r, c = selectedCell.dataset.c;
+            if (n === 0) { selectedCell.innerText = ''; selectedCell.classList.remove('error'); return; }
+            selectedCell.innerText = n;
+            if (n != solution[r][c]) selectedCell.classList.add('error');
+            else {
+                selectedCell.classList.remove('error');
+                const cells = [...document.querySelectorAll('.cell')];
+                if (cells.every(el => el.innerText != '' && !el.classList.contains('error'))) {
+                    clearInterval(timerInterval);
+                    alert("Winner!");
+                }
             }
         }
 
-        // Initialize: Load saved game or start new one
-        if (!loadGame()) {
-            startNewGame();
-        }
+        startNewGame();
     </script>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js')
-                    .then(reg => console.log('SW active'))
-                    .catch(err => console.log('SW failed', err));
-            });
-        }
-    </script>
-
-
-
-    <script>
-        // This part is CRUCIAL: It keeps your Service Worker (sw.js) running 
+<script>
+        // This part is CRUCIAL: It keeps your Service Worker (sw.js) running
         // so the app stays "installable" and works offline.
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -303,5 +220,6 @@
             });
         }
     </script>
+
 </body>
 </html>
