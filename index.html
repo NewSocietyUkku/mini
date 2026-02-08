@@ -4,7 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mini Sudoku</title>
-    <style>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3498db">
+</head> 
+
+
+
+
+
+
+
+l    <style>
         :root {
             --border-color: #333;
             --cell-size: 15vw; 
@@ -270,6 +281,20 @@
     </script>
 
     <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('SW active'))
+                    .catch(err => console.log('SW failed', err));
+            });
+        }
+    </script>
+
+
+
+    <script>
+        // This part is CRUCIAL: It keeps your Service Worker (sw.js) running 
+        // so the app stays "installable" and works offline.
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
