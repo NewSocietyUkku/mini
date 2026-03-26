@@ -1,13 +1,14 @@
 {
-  "name": "mini",
-  "short_name": "mini",
-  "start_url": "/mini/",
+  "name": "Mini App",
+  "short_name": "Mini",
+  "description": "The Mini app for newsocietyukku.",
+  "start_url": "/mini/index.html",
   "display": "standalone",
   "background_color": "#f5f7fa",
   "theme_color": "#3498db",
   "icons": [
     {
-      "src": "mini/icon.png",
+      "src": "icon.png",
       "sizes": "192x192",
       "type": "image/png"
     }
